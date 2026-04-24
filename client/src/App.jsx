@@ -30,7 +30,7 @@ function AppShell() {
       <div
         className={
           padForMobileNav
-            ? "min-h-dvh flex flex-col pb-24 md:pb-0"
+            ? "min-h-dvh flex flex-col pb-20 md:pb-0"
             : "min-h-dvh flex flex-col"
         }
       >

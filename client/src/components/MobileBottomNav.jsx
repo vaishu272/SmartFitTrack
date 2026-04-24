@@ -1,4 +1,5 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   PlusCircle,
@@ -10,134 +11,230 @@ import {
   UserPlus,
   Info,
   MessageSquareMore,
+  MoreHorizontal,
+  LogOut,
+  X,
 } from "lucide-react";
 import { useAuth } from "../store/auth";
 
-const badgeBase =
-  "flex flex-col items-center justify-center gap-0.5 rounded-2xl px-1.5 py-2 min-w-0 flex-1 transition-all duration-200 active:scale-95";
-
-const inactiveClass =
-  "text-zinc-500 hover:text-primary-600 dark:text-zinc-400 dark:hover:text-primary-400";
-
-const activeClass =
-  "bg-primary-500 text-white shadow-md shadow-primary-500/35 dark:shadow-primary-500/25";
-
-function NavBadge({ to, end, icon, label }) {
-  const Icon = icon;
-  return (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) =>
-        `${badgeBase} ${isActive ? activeClass : inactiveClass}`
-      }
-    >
-      <Icon className="w-5 h-5 shrink-0 mx-auto" strokeWidth={2} aria-hidden />
-      <span className="text-[10px] font-semibold leading-tight text-center px-0.5 truncate max-w-full">
-        {label}
-      </span>
-    </NavLink>
-  );
-}
-
-function ActionBadge({ onClick, icon, label, variant = "default" }) {
-  const Icon = icon;
-  const base =
-    variant === "danger"
-      ? "text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-      : inactiveClass;
-
-  return (
-    <button type="button" onClick={onClick} className={`${badgeBase} ${base}`}>
-      <Icon className="w-5 h-5 shrink-0 mx-auto" strokeWidth={2} aria-hidden />
-      <span className="text-[10px] font-semibold leading-tight text-center px-0.5 truncate max-w-full">
-        {label}
-      </span>
-    </button>
-  );
-}
-
 export default function MobileBottomNav() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, LogoutUser } = useAuth();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const hideOnFocusedFlow =
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/onboarding";
 
+  const [prevPathname, setPrevPathname] = useState(pathname);
+
+  // Close menu when navigating
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setIsMoreMenuOpen(false);
+  }
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMoreMenuOpen(false);
+      }
+    }
+    if (isMoreMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMoreMenuOpen]);
+
   if (hideOnFocusedFlow) return null;
 
-  const loggedInPrimaryLinks = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/log-workout", icon: PlusCircle, label: "Log" },
-    { to: "/exercises", icon: Dumbbell, label: "Exercises" },
-    { to: "/history", icon: History, label: "History" },
-    { to: "/profile", icon: UserRound, label: "Profile" },
-  ];
+  const handleLogout = async () => {
+    await LogoutUser();
+    setIsMoreMenuOpen(false);
+    navigate("/login");
+  };
 
-  const loggedInSecondaryLinks = [
-    { to: "/about", icon: Info, label: "About" },
-    { to: "/contact", icon: MessageSquareMore, label: "Contact" },
-  ];
+  const navItemClass = ({ isActive }) =>
+    `flex flex-col items-center justify-center gap-1 w-16 h-12 transition-all duration-200 ${
+      isActive
+        ? "text-primary-600 dark:text-primary-400 scale-110 font-bold"
+        : "text-zinc-500 dark:text-zinc-400 hover:text-primary-500 dark:hover:text-primary-400 font-medium active:scale-95"
+    }`;
 
-  const guestPrimaryLinks = [
-    { to: "/", icon: Home, label: "Home", end: true },
-    { to: "/exercises-visitor", icon: Dumbbell, label: "Exercises" },
-    { to: "/about", icon: Info, label: "About" },
-    { to: "/contact", icon: MessageSquareMore, label: "Contact" },
-    { to: "/login", icon: LogIn, label: "Log in" },
-    { to: "/register", icon: UserPlus, label: "Sign up" },
-  ];
+  const centerButtonClass = ({ isActive }) =>
+    `flex items-center justify-center -mt-6 w-14 h-14 rounded-full shadow-lg transition-all duration-200 active:scale-95 border-[4px] border-white dark:border-neutral-900 ${
+      isActive
+        ? "bg-primary-600 text-white shadow-primary-500/40"
+        : "bg-primary-500 text-white hover:bg-primary-600 shadow-primary-500/30"
+    }`;
+
+  const moreMenuClass = `absolute left-4 right-4 bottom-24 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-zinc-200 dark:border-neutral-800 rounded-2xl shadow-2xl p-4 transition-all duration-300 origin-bottom ${
+    isMoreMenuOpen
+      ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+      : "opacity-0 scale-95 translate-y-4 pointer-events-none"
+  }`;
 
   return (
-    <nav
-      className="fixed bottom-0 inset-x-0 z-60 md:hidden pointer-events-none"
-      aria-label="Main navigation"
-    >
-      <div className="pointer-events-auto mx-3 mb-[max(0.5rem,env(safe-area-inset-bottom))] rounded-2xl border border-zinc-200/80 bg-white/90 px-1 py-2 shadow-lg shadow-zinc-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-950/90 dark:shadow-black/40">
-        <div className="space-y-1.5">
+    <>
+      {/* Overlay to catch clicks outside menu */}
+      {isMoreMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/20 dark:bg-black/40 backdrop-blur-sm md:hidden transition-opacity"
+          onClick={() => setIsMoreMenuOpen(false)}
+        />
+      )}
+
+      <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-white/80 dark:bg-neutral-900/80 backdrop-blur-lg border-t border-zinc-200 dark:border-neutral-800 rounded-t-2xl pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+        {/* More Menu Popover */}
+        <div ref={menuRef} className={moreMenuClass}>
+          <div className="flex justify-between items-center mb-4 pb-3 border-b border-zinc-100 dark:border-neutral-800">
+            <h3 className="font-bold text-zinc-900 dark:text-white">
+              More Options
+            </h3>
+            <button
+              onClick={() => setIsMoreMenuOpen(false)}
+              className="p-1.5 rounded-full bg-zinc-100 dark:bg-neutral-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {isLoggedIn ? (
+              <>
+                <NavLink
+                  to="/profile"
+                  className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-zinc-50 dark:bg-neutral-800/50 text-zinc-700 dark:text-zinc-300 active:bg-zinc-100 dark:active:bg-neutral-800 transition-colors"
+                >
+                  <UserRound size={24} className="text-primary-500" />
+                  <span className="font-medium text-sm">Profile</span>
+                </NavLink>
+                <NavLink
+                  to="/about"
+                  className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-zinc-50 dark:bg-neutral-800/50 text-zinc-700 dark:text-zinc-300 active:bg-zinc-100 dark:active:bg-neutral-800 transition-colors"
+                >
+                  <Info size={24} className="text-primary-500" />
+                  <span className="font-medium text-sm">About</span>
+                </NavLink>
+                <NavLink
+                  to="/contact"
+                  className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-zinc-50 dark:bg-neutral-800/50 text-zinc-700 dark:text-zinc-300 active:bg-zinc-100 dark:active:bg-neutral-800 transition-colors"
+                >
+                  <MessageSquareMore size={24} className="text-primary-500" />
+                  <span className="font-medium text-sm">Contact</span>
+                </NavLink>
+                <button
+                  onClick={handleLogout}
+                  className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 active:bg-red-100 dark:active:bg-red-900/30 transition-colors"
+                >
+                  <LogOut size={24} />
+                  <span className="font-medium text-sm">Log out</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <NavLink
+                  to="/about"
+                  className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-zinc-50 dark:bg-neutral-800/50 text-zinc-700 dark:text-zinc-300 active:bg-zinc-100 dark:active:bg-neutral-800 transition-colors"
+                >
+                  <Info size={24} className="text-primary-500" />
+                  <span className="font-medium text-sm">About</span>
+                </NavLink>
+                <NavLink
+                  to="/contact"
+                  className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-zinc-50 dark:bg-neutral-800/50 text-zinc-700 dark:text-zinc-300 active:bg-zinc-100 dark:active:bg-neutral-800 transition-colors"
+                >
+                  <MessageSquareMore size={24} className="text-primary-500" />
+                  <span className="font-medium text-sm">Contact</span>
+                </NavLink>
+                <NavLink
+                  to="/login"
+                  className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-zinc-50 dark:bg-neutral-800/50 text-zinc-700 dark:text-zinc-300 active:bg-zinc-100 dark:active:bg-neutral-800 transition-colors"
+                >
+                  <LogIn size={24} className="text-primary-500" />
+                  <span className="font-medium text-sm">Log in</span>
+                </NavLink>
+                <NavLink
+                  to="/register"
+                  className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 active:bg-primary-100 dark:active:bg-primary-900/30 transition-colors"
+                >
+                  <UserPlus size={24} />
+                  <span className="font-medium text-sm">Sign up</span>
+                </NavLink>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Nav Items */}
+        <div className="flex items-center justify-around px-2 pt-2 pb-1 relative z-50">
           {isLoggedIn ? (
             <>
-              <div className="flex items-stretch justify-between gap-0.5">
-                {loggedInPrimaryLinks.map((item) => (
-                  <NavBadge
-                    key={item.to}
-                    to={item.to}
-                    icon={item.icon}
-                    label={item.label}
-                    end={item.end}
-                  />
-                ))}
+              <NavLink to="/dashboard" className={navItemClass}>
+                <LayoutDashboard size={24} strokeWidth={2.2} />
+                <span className="text-[10px]">Dashboard</span>
+              </NavLink>
+
+              <NavLink to="/log-workout" className={navItemClass}>
+                <PlusCircle size={24} strokeWidth={2.2} />
+                <span className="text-[10px]">Log</span>
+              </NavLink>
+
+              <div className="w-16 flex justify-center">
+                <NavLink to="/exercises" className={centerButtonClass}>
+                  <Dumbbell size={24} strokeWidth={2.2} />
+                </NavLink>
               </div>
-              <div className="flex items-stretch justify-center gap-0.5">
-                {loggedInSecondaryLinks.map((item) => (
-                  <NavBadge
-                    key={item.to}
-                    to={item.to}
-                    icon={item.icon}
-                    label={item.label}
-                  />
-                ))}
-              </div>
+
+              <NavLink to="/history" className={navItemClass}>
+                <History size={24} strokeWidth={2.2} />
+                <span className="text-[10px]">History</span>
+              </NavLink>
+
+              <button
+                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                className={`flex flex-col items-center justify-center gap-1 w-16 h-12 transition-all duration-200 active:scale-95 ${
+                  isMoreMenuOpen
+                    ? "text-primary-600 dark:text-primary-400 scale-110 font-bold"
+                    : "text-zinc-500 dark:text-zinc-400 font-medium"
+                }`}
+              >
+                <MoreHorizontal size={24} strokeWidth={2.2} />
+                <span className="text-[10px]">More</span>
+              </button>
             </>
           ) : (
             <>
-              <div className="flex items-stretch justify-between gap-0.5">
-                {guestPrimaryLinks.map((item) => (
-                  <NavBadge
-                    key={item.to}
-                    to={item.to}
-                    icon={item.icon}
-                    label={item.label}
-                    end={item.end}
-                  />
-                ))}
+              <NavLink to="/" end className={navItemClass}>
+                <Home size={24} strokeWidth={2.2} />
+                <span className="text-[10px]">Home</span>
+              </NavLink>
+
+              <div className="w-16 flex justify-center">
+                <NavLink to="/exercises-visitor" className={centerButtonClass}>
+                  <Dumbbell size={24} strokeWidth={2.2} />
+                </NavLink>
               </div>
+
+              <button
+                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                className={`flex flex-col items-center justify-center gap-1 w-16 h-12 transition-all duration-200 active:scale-95 ${
+                  isMoreMenuOpen
+                    ? "text-primary-600 dark:text-primary-400 scale-110 font-bold"
+                    : "text-zinc-500 dark:text-zinc-400 font-medium"
+                }`}
+              >
+                <MoreHorizontal size={24} strokeWidth={2.2} />
+                <span className="text-[10px]">More</span>
+              </button>
             </>
           )}
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }

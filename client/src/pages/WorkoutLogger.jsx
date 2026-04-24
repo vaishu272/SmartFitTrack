@@ -9,9 +9,7 @@ const field =
 
 export default function WorkoutLogger() {
   const [exerciseOptions, setExerciseOptions] = useState([]);
-  const [workoutDate, setWorkoutDate] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  );
+  const [workoutDate] = useState(new Date().toISOString().slice(0, 10));
   const [exercises, setExercises] = useState([
     { exerciseId: "", duration: "", sets: "", reps: "" },
   ]);
@@ -97,8 +95,8 @@ export default function WorkoutLogger() {
           <input
             type="date"
             value={workoutDate}
-            onChange={(e) => setWorkoutDate(e.target.value)}
-            className={`w-full max-w-xs ${field}`}
+            readOnly
+            className={`w-full max-w-xs ${field} opacity-70 cursor-not-allowed`}
           />
         </div>
 

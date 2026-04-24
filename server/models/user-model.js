@@ -29,19 +29,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-<<<<<<< HEAD
-=======
-    galleryImages: {
-      type: [String],
-      default: [],
-    },
-
-    storageUsed: {
-      type: Number,
-      default: 0,
-    },
-
->>>>>>> e56a6ed59f42bc478c50508a36a89764c990b7f3
     refreshToken: {
       type: String,
     },
@@ -111,6 +98,7 @@ userSchema.pre("save", async function () {
 });
 
 userSchema.methods.comparePassword = async function (password) {
+  if (!this.password) return false;
   return await bcrypt.compare(password, this.password);
 };
 
