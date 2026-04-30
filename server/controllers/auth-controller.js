@@ -49,6 +49,7 @@ export const register = async (req, res) => {
       userExists.emailVerificationExpires = new Date(
         Date.now() + 15 * 60 * 1000,
       );
+      userExists.otpAttempts = 0;
       await userExists.save();
 
       try {
@@ -104,7 +105,7 @@ export const register = async (req, res) => {
   }
 };
 
-export const verifyEmail = async (req, res) => {
+export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -114,27 +115,36 @@ export const verifyEmail = async (req, res) => {
         .json({ message: "Email and OTP are required for verification" });
     }
 
-    const hashedOtp = hashToken(otp);
-
-    const user = await User.findOne({
-      email,
-      emailVerificationToken: hashedOtp,
-      emailVerificationExpires: { $gt: new Date() },
-    });
+    const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+      return res.status(400).json({ message: "User not found or invalid request" });
     }
 
-    user.otpAttempts += 1;
+    if (user.isEmailVerified) {
+      return res.status(400).json({ message: "Email is already verified" });
+    }
 
-    if (user.otpAttempts > 5) {
-      return res.status(429).json({ message: "Too many attempts" });
+    if (user.otpAttempts >= 5) {
+      return res.status(429).json({ message: "Too many attempts. Please request a new OTP." });
+    }
+
+    const hashedOtp = hashToken(otp);
+
+    if (
+      user.emailVerificationToken !== hashedOtp ||
+      !user.emailVerificationExpires ||
+      user.emailVerificationExpires < new Date()
+    ) {
+      user.otpAttempts += 1;
+      await user.save();
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
+    user.otpAttempts = 0;
     await user.save();
 
     return res.status(200).json({
@@ -146,7 +156,7 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
-export const resendVerificationEmail = async (req, res) => {
+export const resendOtp = async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -172,6 +182,7 @@ export const resendVerificationEmail = async (req, res) => {
     const otp = generateEmailOtp();
     user.emailVerificationToken = hashToken(otp);
     user.emailVerificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+    user.otpAttempts = 0;
     await user.save();
 
     await sendEmail(
@@ -262,7 +273,7 @@ export const login = async (req, res) => {
     userExist.refreshTokenExpiresAt = new Date(
       Date.now() + 7 * 24 * 60 * 60 * 1000,
     );
-    
+
     updateStreak(userExist);
     await userExist.save();
 
@@ -287,6 +298,69 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const userExist = await User.findOne({ email });
+
+    if (!userExist) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const isMatch = await userExist.comparePassword(password);
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    if (!userExist.isEmailVerified) {
+      return res.status(403).json({
+        message:
+          "Please verify your email before logging in. Check your inbox for the OTP.",
+      });
+    }
+
+    if (userExist.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized as admin" });
+    }
+
+    const accessToken = generateAccessToken(userExist);
+    const refreshToken = generateRefreshToken();
+
+    userExist.refreshToken = hashToken(refreshToken);
+    userExist.refreshTokenExpiresAt = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000,
+    );
+    updateStreak(userExist);
+    await userExist.save();
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      message: "Admin login successful",
+      accessToken,
+      userId: userExist._id,
+      user: {
+        _id: userExist._id,
+        name: userExist.name,
+        email: userExist.email,
+        onboardingComplete: userExist.onboardingComplete,
+        avatar: userExist.avatar,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -413,7 +487,7 @@ export const googleLogin = async (req, res) => {
     userExist.refreshTokenExpiresAt = new Date(
       Date.now() + 7 * 24 * 60 * 60 * 1000,
     );
-    
+
     updateStreak(userExist);
     await userExist.save();
 

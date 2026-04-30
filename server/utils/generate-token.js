@@ -5,7 +5,7 @@ export const generateAccessToken = (user) => {
   return jwt.sign(
     {
       userId: user._id.toString(),
-      isAdmin: user.isAdmin,
+      role: user.role || "user",
     },
     process.env.JWT_ACCESS_SECRET,
     {

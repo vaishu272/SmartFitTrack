@@ -96,7 +96,7 @@ const Contact = () => {
                   Email
                 </h3>
                 <p className="text-zinc-500 dark:text-neutral-400">
-                  support@smartfittrack.com
+                  smartfittrackv1@gmail.com
                 </p>
               </div>
             </div>

@@ -60,9 +60,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    isAdmin: {
-      type: Boolean,
-      default: false,
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
     },
     onboardingComplete: {
       type: Boolean,
@@ -92,10 +93,20 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function () {
+  if (!this.role) this.role = "user";
+
   if (!this.isModified("password") || !this.password) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
+
+userSchema.index(
+  { role: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { role: "admin" },
+  },
+);
 
 userSchema.methods.comparePassword = async function (password) {
   if (!this.password) return false;

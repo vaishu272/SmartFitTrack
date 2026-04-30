@@ -14,11 +14,12 @@ import {
   MoreHorizontal,
   LogOut,
   X,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../store/auth";
 
 export default function MobileBottomNav() {
-  const { isLoggedIn, LogoutUser } = useAuth();
+  const { isLoggedIn, user, LogoutUser } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -127,6 +128,15 @@ export default function MobileBottomNav() {
                   <MessageSquareMore size={24} className="text-primary-500" />
                   <span className="font-medium text-sm">Contact</span>
                 </NavLink>
+                {user?.role === "admin" && (
+                  <NavLink
+                    to="/admin"
+                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-zinc-50 dark:bg-neutral-800/50 text-zinc-700 dark:text-zinc-300 active:bg-zinc-100 dark:active:bg-neutral-800 transition-colors"
+                  >
+                    <ShieldCheck size={24} className="text-primary-500" />
+                    <span className="font-medium text-sm">Admin</span>
+                  </NavLink>
+                )}
                 <button
                   onClick={handleLogout}
                   className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 active:bg-red-100 dark:active:bg-red-900/30 transition-colors"

@@ -2,15 +2,16 @@ import express from "express";
 import {
   register,
   login,
+  adminLogin,
   user,
   logout,
   refreshAccessToken,
   onboarding,
-  verifyEmail,
-  resendVerificationEmail,
   googleLogin,
   forgotPassword,
   resetPassword,
+  verifyOtp,
+  resendOtp,
 } from "../controllers/auth-controller.js";
 import { validate } from "../middlewares/validate-middleware.js";
 import {
@@ -30,6 +31,7 @@ const router = express.Router();
 router.post("/register", validate(signupSchema), register);
 
 router.post("/login", validate(loginSchema), login);
+router.post("/admin/login", validate(loginSchema), adminLogin);
 
 router.post("/google-login", googleLogin);
 
@@ -58,7 +60,7 @@ router.put(
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
-router.post("/verify-email", verifyEmail);
-router.post("/resend-verification-email", resendVerificationEmail);
+router.post("/verify-otp", verifyOtp);
+router.post("/resend-otp", resendOtp);
 
 export default router;

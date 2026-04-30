@@ -9,8 +9,10 @@ import exerciseRoute from "./routes/exercise-router.js";
 import workoutRoute from "./routes/workout-router.js";
 import progressRoute from "./routes/progress-router.js";
 import streakRoute from "./routes/streak-router.js";
+import adminRoute from "./routes/admin-router.js";
 import { connectDB } from "./utils/db.js";
 import { seedDatabaseIfEmpty } from "./utils/seed-if-empty.js";
+import { assignSingleAdminFromEnv } from "./utils/assign-admin.js";
 import { errorMiddleware } from "./middlewares/error-middleware.js";
 import mongoose from "mongoose";
 
@@ -67,6 +69,7 @@ app.use("/api/workouts", workoutRoute);
 app.use("/api/progress", progressRoute);
 app.use("/api/dashboard", progressRoute); // Dashboard is also in progress router
 app.use("/api/streak", streakRoute);
+app.use("/api/admin", adminRoute);
 
 app.use(errorMiddleware);
 
@@ -74,6 +77,7 @@ const PORT = process.env.PORT || 5000;
 
 connectDB().then(async () => {
   await seedDatabaseIfEmpty();
+  await assignSingleAdminFromEnv();
   app.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);
   });

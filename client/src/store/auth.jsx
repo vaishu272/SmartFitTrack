@@ -167,6 +167,27 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
+  const LoginAdminUser = async (email, password) => {
+    const res = await axios.post(
+      `${API_BASE}/api/auth/admin/login`,
+      { email, password },
+      { withCredentials: true },
+    );
+
+    const token = res.data.accessToken;
+    setAccessToken(token);
+
+    const response = await axios.get(`${API_BASE}/api/auth/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      withCredentials: true,
+    });
+
+    setUser(response.data.userData);
+    return res.data;
+  };
+
   const LogoutUser = async () => {
     try {
       await axios.post(
@@ -194,6 +215,7 @@ export const AuthProvider = ({ children }) => {
         API: API_BASE,
         authorizationToken,
         LoginUser,
+        LoginAdminUser,
         LoginUserWithGoogle,
         LogoutUser,
         userAuthentication,

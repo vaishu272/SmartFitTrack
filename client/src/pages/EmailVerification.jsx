@@ -13,6 +13,7 @@ const EmailVerification = () => {
   const [message, setMessage] = useState("Enter your email and OTP to verify.");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 min
 
   useEffect(() => {
     const emailFromQuery = searchParams.get("email");
@@ -20,6 +21,22 @@ const EmailVerification = () => {
       setEmail(emailFromQuery);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  const formatTime = (seconds) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min}:${sec < 10 ? "0" : ""}${sec}`;
+  };
 
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -30,7 +47,7 @@ const EmailVerification = () => {
 
     try {
       setIsSubmitting(true);
-      const res = await axios.post(`${API}/api/auth/verify-email`, {
+      const res = await axios.post(`${API}/api/auth/verify-otp`, {
         email: email.trim(),
         otp: otp.trim(),
       });
@@ -41,7 +58,8 @@ const EmailVerification = () => {
     } catch (error) {
       setStatus("error");
       setMessage(
-        error.response?.data?.message || "Verification failed. Please try again.",
+        error.response?.data?.message ||
+          "Verification failed. Please try again.",
       );
       toast.error(error.response?.data?.message || "Verification failed");
     } finally {
@@ -56,10 +74,11 @@ const EmailVerification = () => {
     }
     try {
       setIsResending(true);
-      const res = await axios.post(`${API}/api/auth/resend-verification-email`, {
+      const res = await axios.post(`${API}/api/auth/resend-otp`, {
         email: email.trim(),
       });
       toast.success(res.data?.message || "Verification OTP sent.");
+      setTimeLeft(300);
     } catch (error) {
       toast.error(error.response?.data?.message || "Could not resend OTP");
     } finally {
@@ -73,13 +92,20 @@ const EmailVerification = () => {
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
           Email Verification
         </h1>
+
+        <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
+          We’ve sent a 6-digit OTP to{" "}
+          <span className="font-semibold text-primary-500">{email}</span>
+        </p>
+
         <p
-          className={`text-sm ${status === "success"
+          className={`text-sm ${
+            status === "success"
               ? "text-green-600 dark:text-green-400"
               : status === "error"
                 ? "text-red-600 dark:text-red-400"
                 : "text-zinc-500 dark:text-neutral-400"
-            }`}
+          }`}
         >
           {message}
         </p>
@@ -104,9 +130,12 @@ const EmailVerification = () => {
             <input
               type="text"
               value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="w-full px-4 py-3 rounded-xl bg-zinc-50 dark:bg-neutral-800 border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-primary-500 tracking-[0.4em] text-center"
-              placeholder="123456"
+              onChange={(e) =>
+                setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              maxLength={6}
+              className="w-full px-4 py-3 rounded-xl bg-zinc-50 dark:bg-neutral-800 border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white outline-none focus:border-primary-500 tracking-[0.5em] text-center text-lg font-bold"
+              placeholder="••••••"
             />
           </div>
 
@@ -120,10 +149,14 @@ const EmailVerification = () => {
           <button
             type="button"
             onClick={handleResendOtp}
-            disabled={isResending}
-            className="w-full rounded-xl bg-zinc-900 hover:bg-zinc-700 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-semibold py-3 transition disabled:opacity-60"
+            disabled={isResending || timeLeft > 0}
+            className="w-full rounded-xl bg-zinc-900 hover:bg-zinc-700 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-semibold py-3 transition disabled:opacity-50"
           >
-            {isResending ? "Sending..." : "Resend OTP"}
+            {isResending
+              ? "Sending..."
+              : timeLeft > 0
+                ? `Resend OTP in ${formatTime(timeLeft)}`
+                : "Resend OTP"}
           </button>
         </form>
 

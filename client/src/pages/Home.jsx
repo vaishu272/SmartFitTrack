@@ -8,7 +8,9 @@ const Home = () => {
 
   useEffect(() => {
     if (isLoading || !isLoggedIn) return;
-    if (!user?.onboardingComplete) {
+    if (user?.role === "admin") {
+      navigate("/admin/dashboard", { replace: true });
+    } else if (!user?.onboardingComplete) {
       navigate("/onboarding", { replace: true });
     } else {
       navigate("/dashboard", { replace: true });

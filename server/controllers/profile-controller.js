@@ -103,20 +103,32 @@ export const changePassword = async (req, res) => {
     const userId = req.user._id;
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
+    if (!newPassword) {
       return res.status(400).json({
-        message: "Both current and new password are required",
+        message: "New password is required",
       });
     }
 
     const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    const isMatch = await user.comparePassword(currentPassword);
+    const hasExistingPassword = Boolean(user.password);
 
-    if (!isMatch) {
-      return res.status(400).json({
-        message: "Current password is incorrect",
-      });
+    if (hasExistingPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          message: "Current password is required",
+        });
+      }
+
+      const isMatch = await user.comparePassword(currentPassword);
+      if (!isMatch) {
+        return res.status(400).json({
+          message: "Current password is incorrect",
+        });
+      }
     }
 
     if (newPassword.length < 6) {
@@ -125,14 +137,16 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    // ✅ This triggers pre("save") and hashes automatically
+    // Triggers pre("save") and hashes automatically.
     user.password = newPassword;
 
     await user.save();
 
     res.status(200).json({
       success: true,
-      message: "Password changed successfully",
+      message: hasExistingPassword
+        ? "Password changed successfully"
+        : "Password set successfully",
     });
   } catch (error) {
     console.log(error);

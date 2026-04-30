@@ -200,9 +200,15 @@ const Profile = () => {
     if (isChangingPassword) return;
 
     const { currentPassword, newPassword, confirmPassword } = passwordForm;
+    const isGoogleLinkedAccount = Boolean(user?.googleId);
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("Please fill in all password fields");
+    if (!newPassword || !confirmPassword) {
+      toast.error("Please fill in new password fields");
+      return;
+    }
+
+    if (!isGoogleLinkedAccount && !currentPassword) {
+      toast.error("Current password is required");
       return;
     }
 
@@ -220,7 +226,10 @@ const Profile = () => {
       setIsChangingPassword(true);
       const res = await axios.put(
         `${API}/api/auth/change-password`,
-        { currentPassword, newPassword },
+        {
+          ...(currentPassword ? { currentPassword } : {}),
+          newPassword,
+        },
         {
           withCredentials: true,
           headers: { Authorization: authorizationToken },
@@ -241,6 +250,7 @@ const Profile = () => {
   };
 
   const achievements = user?.achievements || [];
+  const isGoogleLinkedAccount = Boolean(user?.googleId);
   const hasPasswordMismatch =
     passwordForm.confirmPassword.length > 0 &&
     passwordForm.newPassword !== passwordForm.confirmPassword;
@@ -581,12 +591,14 @@ const Profile = () => {
             Change password
           </h2>
           <p className="text-sm text-zinc-500 dark:text-neutral-500 mb-4">
-            Use your current password to set a new one.
+            {isGoogleLinkedAccount
+              ? "Set a local password for email/password login."
+              : "Use your current password to set a new one."}
           </p>
           <form onSubmit={handlePasswordChange} className="space-y-4">
             <div>
               <label className="block mb-2 text-sm text-zinc-600 dark:text-neutral-300">
-                Current Password
+                Current Password {!isGoogleLinkedAccount ? "*" : "(optional)"}
               </label>
               <div className="relative">
                 <input
@@ -702,9 +714,9 @@ const Profile = () => {
               type="submit"
               disabled={
                 isChangingPassword ||
-                !passwordForm.currentPassword ||
                 !passwordForm.newPassword ||
                 !passwordForm.confirmPassword ||
+                (!isGoogleLinkedAccount && !passwordForm.currentPassword) ||
                 hasPasswordMismatch
               }
               className="w-full py-3 rounded-xl bg-zinc-900 hover:bg-zinc-700 dark:bg-white dark:hover:bg-zinc-200 transition font-bold text-white dark:text-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -723,7 +735,7 @@ const Profile = () => {
             onClick={() => {
               toast(
                 (t) => (
-                  <div className="p-1 min-w-[240px]">
+                  <div className="p-1 min-w-60">
                     <p className="text-base font-semibold text-zinc-900 dark:text-white mb-5">
                       Are you sure you want to logout?
                     </p>
@@ -742,7 +754,7 @@ const Profile = () => {
                           await LogoutUser();
                           navigate("/login");
                         }}
-                        className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition-all shadow-sm shadow-red-500/20 active:scale-95"
+                        className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500 text-white text-sm font-bold transition-all shadow-md shadow-red-600/40 dark:shadow-red-600/50 active:scale-95"
                       >
                         Log out
                       </button>

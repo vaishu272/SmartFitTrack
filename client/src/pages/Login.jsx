@@ -9,7 +9,7 @@ import axios from "axios";
 import { useTheme } from "../store/theme";
 
 const Login = () => {
-  const { LoginUser, isLoggedIn, LoginUserWithGoogle, API } = useAuth();
+  const { LoginUser, isLoggedIn, LoginUserWithGoogle, API, user } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
@@ -31,9 +31,13 @@ const Login = () => {
 
   useEffect(() => {
     if (isLoggedIn) {
-      navigate("/", { replace: true });
+      if (user?.role === "admin") {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     }
-  }, [isLoggedIn, navigate]);
+  }, [isLoggedIn, navigate, user]);
 
   const onSubmit = async (data) => {
     setServerError("");
@@ -45,7 +49,21 @@ const Login = () => {
       navigate("/");
     } catch (error) {
       const resData = error.response?.data;
-      const errorMessage = resData?.message || "Login failed";
+      if (error.response?.data?.code === "EMAIL_NOT_VERIFIED") {
+        toast.error("Please verify your email first");
+        navigate(`/verify-otp?email=${encodeURIComponent(data.email)}`);
+        return;
+      }
+
+      let errorMessage = "Login failed";
+
+      if (resData) {
+        if (resData.extraDetails && typeof resData.extraDetails === "object") {
+          errorMessage = Object.values(resData.extraDetails)[0];
+        } else if (resData.message) {
+          errorMessage = resData.message;
+        }
+      }
       setServerError(errorMessage);
       toast.error(errorMessage);
     }
