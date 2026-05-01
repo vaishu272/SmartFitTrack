@@ -74,13 +74,15 @@ app.use("/api/admin", adminRoute);
 
 app.use(errorMiddleware);
 
-connectDB().then(async () => {
-  await seedDatabaseIfEmpty();
-  await assignSingleAdminFromEnv();
-  app.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT}`);
-  });
-});
+export const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Database connected");
+  } catch (error) {
+    console.log("Database Connection failed:", error.message);
+    process.exit(1); // stop app clearly
+  }
+};
 
 process.on("SIGINT", async () => {
   console.log("Server shutting down...");
