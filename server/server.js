@@ -18,6 +18,7 @@ import mongoose from "mongoose";
 
 dotenv.config();
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
 app.use(cookieParser());
@@ -72,8 +73,6 @@ app.use("/api/streak", streakRoute);
 app.use("/api/admin", adminRoute);
 
 app.use(errorMiddleware);
-
-const PORT = process.env.PORT || 5000;
 
 connectDB().then(async () => {
   await seedDatabaseIfEmpty();
