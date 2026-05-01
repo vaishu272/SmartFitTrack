@@ -10,11 +10,15 @@ import {
   User,
   LogOut,
   X,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useAuth } from "../store/auth";
+import { useTheme } from "../store/theme";
 
 export default function AdminMobileBottomNav() {
   const { LogoutUser } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -42,9 +46,10 @@ export default function AdminMobileBottomNav() {
   }, [isMoreMenuOpen]);
 
   const handleLogout = async () => {
+    localStorage.setItem("adminLogoutRedirect", "true");
     await LogoutUser();
     setIsMoreMenuOpen(false);
-    navigate("/admin/login");
+    navigate("/admin/login", { replace: true });
   };
 
   const navItemClass = ({ isActive }) =>
@@ -84,12 +89,21 @@ export default function AdminMobileBottomNav() {
             <h3 className="font-bold text-zinc-900 dark:text-white">
               Admin Options
             </h3>
-            <button
-              onClick={() => setIsMoreMenuOpen(false)}
-              className="p-1.5 rounded-full bg-zinc-100 dark:bg-neutral-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
-            >
-              <X size={16} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="p-1.5 rounded-full bg-zinc-100 dark:bg-neutral-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+              <button
+                onClick={() => setIsMoreMenuOpen(false)}
+                className="p-1.5 rounded-full bg-zinc-100 dark:bg-neutral-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

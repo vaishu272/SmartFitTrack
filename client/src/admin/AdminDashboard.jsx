@@ -1,19 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { Bar } from "react-chartjs-2";
+import { Bar, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
 } from "chart.js";
 import { useAuth } from "../store/auth";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+);
 
 export default function AdminDashboard() {
   const { API, authorizationToken } = useAuth();
@@ -28,7 +37,9 @@ export default function AdminDashboard() {
       });
       setStats(response.data);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to load admin stats");
+      toast.error(
+        error.response?.data?.message || "Failed to load admin stats",
+      );
     } finally {
       setLoading(false);
     }
@@ -42,7 +53,9 @@ export default function AdminDashboard() {
     if (!stats?.workoutsByDay?.length) {
       return {
         labels: ["No data"],
-        datasets: [{ label: "Workouts", data: [0], backgroundColor: "#38bdf8" }],
+        datasets: [
+          { label: "Workouts", data: [0], backgroundColor: "#38bdf8" },
+        ],
       };
     }
     return {
@@ -53,6 +66,52 @@ export default function AdminDashboard() {
           data: stats.workoutsByDay.map((d) => d.workouts),
           backgroundColor: "#38bdf8",
           borderRadius: 6,
+        },
+      ],
+    };
+  }, [stats]);
+
+  const userChartData = useMemo(() => {
+    if (!stats?.growthTrend?.length) {
+      return {
+        labels: ["No data"],
+        datasets: [
+          { label: "New Users", data: [0], backgroundColor: "#10b981" },
+        ],
+      };
+    }
+    return {
+      labels: stats.growthTrend.map((d) => d._id),
+      datasets: [
+        {
+          label: "New Users per day",
+          data: stats.growthTrend.map((d) => d.count),
+          backgroundColor: "#10b981",
+          borderRadius: 6,
+        },
+      ],
+    };
+  }, [stats]);
+
+  const userStatusChartData = useMemo(() => {
+    const active = stats?.activeUsers || 0;
+    const total = stats?.totalUsers || 0;
+    const inactive = Math.max(0, total - active);
+    
+    if (total === 0) {
+      return {
+        labels: ["No users"],
+        datasets: [{ data: [1], backgroundColor: ["#52525b"] }],
+      };
+    }
+
+    return {
+      labels: ["Active (7d)", "Inactive"],
+      datasets: [
+        {
+          data: [active, inactive],
+          backgroundColor: ["#10b981", "#ef4444"],
+          borderWidth: 0,
         },
       ],
     };
@@ -77,7 +136,9 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className={cardClass}>
-          <p className="text-sm text-zinc-500 dark:text-neutral-400">Total users</p>
+          <p className="text-sm text-zinc-500 dark:text-neutral-400">
+            Total users
+          </p>
           <p className="text-3xl font-bold mt-2">{stats.totalUsers}</p>
         </div>
         <div className={cardClass}>
@@ -86,17 +147,13 @@ export default function AdminDashboard() {
           </p>
           <p className="text-3xl font-bold mt-2">{stats.totalWorkouts}</p>
         </div>
-        {/* <div className={cardClass}>
-          <p className="text-sm text-zinc-500 dark:text-neutral-400">
-            Active users (7d)
-          </p>
-          <p className="text-3xl font-bold mt-2">{stats.activeUsers}</p>
-        </div> */}
         <div className={cardClass}>
           <p className="text-sm text-zinc-500 dark:text-neutral-400">
             Calories logged (7d)
           </p>
-          <p className="text-3xl font-bold mt-2">{Math.round(stats.caloriesLogged7Days)}</p>
+          <p className="text-3xl font-bold mt-2">
+            {Math.round(stats.caloriesLogged7Days)}
+          </p>
         </div>
         <div className={cardClass}>
           <p className="text-sm text-zinc-500 dark:text-neutral-400">
@@ -106,10 +163,34 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className={cardClass}>
+          <h2 className="text-lg font-semibold mb-4">User Status</h2>
+          <div className="h-72 flex justify-center pb-4">
+            <Pie
+              data={userStatusChartData}
+              options={{ maintainAspectRatio: false, responsive: true }}
+            />
+          </div>
+        </div>
+        <div className={cardClass}>
+          <h2 className="text-lg font-semibold mb-4">User Growth Trend</h2>
+          <div className="h-72">
+            <Bar
+              data={userChartData}
+              options={{ maintainAspectRatio: false, responsive: true }}
+            />
+          </div>
+        </div>
+      </div>
+
       <div className={cardClass}>
         <h2 className="text-lg font-semibold mb-4">Workout Activity Trend</h2>
         <div className="h-72">
-          <Bar data={chartData} options={{ maintainAspectRatio: false, responsive: true }} />
+          <Bar
+            data={chartData}
+            options={{ maintainAspectRatio: false, responsive: true }}
+          />
         </div>
       </div>
     </div>
